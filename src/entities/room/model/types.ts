@@ -2,13 +2,17 @@ import type { NodeId } from "~/entities/act/model/story";
 
 export type Phase = "vote" | "result" | "ending";
 
-export type Trait = { title: string; body: string };
+export type Point = { title: string; body: string };
 
 export type Analysis = {
+  /** 이 팀을 한 문장으로 */
   headline: string;
-  traits: Trait[];
-  watch: string;
-  cheer: string;
+  /** 다수 선택에서 읽히는 일하는 방식 */
+  style: string;
+  strengths: Point[];
+  weaknesses: Point[];
+  /** 다음 스크럼에 바로 해볼 것 */
+  tryNext: string;
   sessionId: string;
 };
 

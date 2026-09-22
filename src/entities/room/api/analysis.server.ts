@@ -2,9 +2,10 @@ import { generateObject } from "ai";
 import { z } from "zod";
 import { ENDINGS, STORY, nodeOf } from "~/entities/act/model/story";
 import { dominantElement, ELEMENTS, ELEMENT_ORDER, todayKey } from "~/entities/element/model/fortune";
-import { aiSetupHint, textModel } from "~/shared/lib/ai.server";
+import { aiSetupHint, reasoningOptions, textModel } from "~/shared/lib/ai.server";
 import type { Analysis, RoomState } from "../model/types";
 import { activePlayers, requireRoom, store, tallyNode } from "./store.server";
+import { forgetRoom } from "~/entities/room/api/cache.server";
 
 /**
  * AI 를 부르는 유일한 런타임 지점.
@@ -14,14 +15,17 @@ import { activePlayers, requireRoom, store, tallyNode } from "./store.server";
  * 파티가 엔딩에 닿는 순간 미리 돌려두므로, 사람들이 엔딩과 사주를 읽는 동안 준비가 끝난다.
  */
 
+const point = z.object({
+  title: z.string().describe("4~12자 제목"),
+  body: z.string().describe("2~3문장. 어느 갈림길의 어떤 표에서 그렇게 읽었는지 밝힐 것"),
+});
+
 const schema = z.object({
-  headline: z.string().describe("이 팀을 한 문장으로"),
-  traits: z
-    .array(z.object({ title: z.string(), body: z.string() }))
-    .length(3)
-    .describe("팀의 특징 3가지. title 은 4~10자, body 는 2~3문장"),
-  watch: z.string().describe("이 팀이 주의할 점 2~3문장"),
-  cheer: z.string().describe("내일의 스크럼을 응원하는 2문장"),
+  headline: z.string().describe("이 팀이 일하는 방식을 한 문장으로"),
+  style: z.string().describe("다수 선택에서 읽히는 일하는 방식 3~4문장"),
+  strengths: z.array(point).min(2).max(3).describe("이 방식의 장점"),
+  weaknesses: z.array(point).min(2).max(3).describe("이 방식의 단점·위험"),
+  tryNext: z.string().describe("다음 스크럼에서 바로 해볼 것 한 가지, 2문장"),
 });
 
 const LOCK_SECONDS = 120;
@@ -52,25 +56,38 @@ function buildPrompt(
     if (element) dist[element]++;
   }
 
-  return `당신은 팀 워크숍 진행자입니다. 아래는 한 개발팀이 아이스브레이킹으로 진행한 '용사가 마왕을 무찌르러 가는 여정'의 결과입니다. 이 여정은 분기형이라, 다수결로 고른 선택이 다음 장소를 바꿉니다. 각 선택지에는 오행 성향이 숨어 있습니다 — 목(木) 일단 벌이고 추진, 화(火) 지금 직접 부딪침, 토(土) 사람과 조율 우선, 금(金) 기준과 원칙대로, 수(水) 돌아가고 흘려보냄.
+  return `당신은 팀의 일하는 방식을 읽어주는 조직 코치입니다.
+
+아래는 한 개발팀이 아이스브레이킹으로 진행한 '용사가 마왕을 무찌르러 가는 여정' 결과입니다.
+분기형이라 **다수결로 고른 답이 실제로 다음 장소를 바꿨습니다.** 각 선택지에는 성향 태그가
+숨어 있습니다 — 목(木) 일단 벌이고 추진, 화(火) 지금 직접 부딪침, 토(土) 사람과 조율 우선,
+금(金) 기준과 원칙대로, 수(水) 돌아가고 흘려보냄.
 
 [파티 인원] ${players.length}명
 
-[파티가 실제로 지나온 길]
+[갈림길마다 팀이 고른 것]
 ${journey}
 
-[도달한 엔딩] ${ending ? `「${ending.title}」` : "(아직 진행 중)"}
+[도달한 결말] ${ending ? `「${ending.title}」` : "(아직 진행 중)"}
 
-[가지 않은 장소] ${skipped.length ? skipped.join(", ") : "없음"}
+[가지 않은 길] ${skipped.length ? skipped.join(", ") : "없음"}
 
-[개인 대표 기운 분포]
-${ELEMENT_ORDER.map((k) => `${ELEMENTS[k].ko}(${ELEMENTS[k].han}) ${ELEMENTS[k].name}: ${dist[k]}명`).join(" · ")}
+[개인 성향 분포]
+${ELEMENT_ORDER.map((k) => `${ELEMENTS[k].ko}: ${dist[k]}명`).join(" · ")}
 
-이 팀의 일하는 성향을 분석해 주세요. 규칙:
-- 한국어 존댓말. 가볍고 유쾌하게, 스크럼에서 5분 안에 읽을 분량.
-- 근거는 반드시 위 결과에서 가져오세요. 어느 갈림길에서 표가 어떻게 갈렸는지, 그래서 어디로 갔고 어디를 안 갔는지 구체적으로 언급할 것.
-- 칭찬만 하지 마세요. 표가 갈린 지점에서 드러나는 이 팀의 진짜 긴장 지점을 최소 하나는 짚을 것.
-- 개인을 평가하지 말고 팀의 경향만 말하세요. 데이터에 이름은 없습니다.`;
+이 팀이 **실제로 일하는 방식**을 읽어주세요. 게임 이야기가 아니라, 이 선택들이 회의실과
+코드 리뷰와 장애 대응에서 어떻게 나타나는지를 말해야 합니다.
+
+규칙:
+- 한국어 존댓말. 스크럼에서 5분 안에 읽을 분량.
+- **근거는 반드시 다수 선택에서 가져오세요.** "3번째 갈림길에서 5명 중 4명이 …를 골랐습니다"
+  처럼 어느 지점의 어떤 표인지 밝힐 것. 근거 없는 일반론은 쓰지 마세요.
+- 장점과 단점은 **같은 성향의 양면**으로 쓰세요. 장점 칸에 칭찬만 모으고 단점 칸에 다른
+  얘기를 쓰면 안 됩니다. 빠르게 움직이는 팀이면 그 속도가 무엇을 놓치는지가 단점입니다.
+- 표가 갈린 지점이 있으면 그게 이 팀의 진짜 긴장 지점입니다. 반드시 다루세요.
+- 가지 않은 길도 정보입니다. 아무도 안 고른 방향이 이 팀의 사각지대일 수 있습니다.
+- 개인을 평가하지 마세요. 데이터에 이름은 없습니다.
+- 듣기 좋은 말로 끝내지 마세요. 단점은 실제로 불편해야 쓸모가 있습니다.`;
 }
 
 export type AnalysisOutcome =
@@ -99,17 +116,21 @@ export async function ensureAnalysis(room: string): Promise<AnalysisOutcome> {
   if (!got) return { status: "running" };
 
   try {
+    const started = Date.now();
     const { object } = await generateObject({
       model: textModel(),
       schema,
       prompt: buildPrompt(state, players),
+      providerOptions: reasoningOptions(),
     });
+    console.log(`[strum] 팀 분석 ${Date.now() - started}ms`);
 
     const analysis: Analysis = { ...object, sessionId: state.sessionId };
     // 분석을 도는 동안 진행자가 다른 걸 눌렀을 수 있으니 최신 상태 위에 얹는다
     const latest = await requireRoom(room);
     if (latest.sessionId === state.sessionId) {
       await db.setState(room, { ...latest, analysis });
+  forgetRoom(room);
     }
     return { status: "ready", analysis };
   } catch (error) {

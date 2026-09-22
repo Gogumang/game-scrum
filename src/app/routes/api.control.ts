@@ -3,6 +3,7 @@ import { isEnding, nodeOf } from "~/entities/act/model/story";
 import { prewarmAnalysis } from "~/entities/room/api/analysis.server";
 import { buildPayload, requireHost } from "~/entities/room/api/room.server";
 import { activePlayers, requireRoom, freshState, store, tallyNode } from "~/entities/room/api/store.server";
+import { forgetRoom } from "~/entities/room/api/cache.server";
 import type { HostCommand, RoomState } from "~/entities/room/model/types";
 
 /**
@@ -71,6 +72,7 @@ export async function action({ params, request }: ActionFunctionArgs) {
   }
 
   await db.setState(room, next);
+  forgetRoom(room);
 
   // 엔딩에 막 닿았다면 팀 분석을 미리 돌려 둔다.
   // 사람들이 엔딩과 사주를 읽는 동안 끝나 있으므로 따로 기다릴 일이 없다.

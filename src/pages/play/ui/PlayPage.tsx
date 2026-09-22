@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { isEnding, nodeOf } from "~/entities/act";
-import { fetchRoom, joinRoom, myPick, type Analysis, type RoomPayload } from "~/entities/room";
+import { fetchRoom, joinRoom, myPick, useRoomFeed, type Analysis, type RoomPayload } from "~/entities/room";
 import { useVote } from "~/features/cast-vote";
 import { WaitingBar } from "~/features/host-control";
 import { NameGate, useIdentity } from "~/features/join-room";
-import { isNotFound, usePolling } from "~/shared/lib";
+import { isNotFound } from "~/shared/lib";
 import { EndingScroll } from "~/widgets/ending-scroll";
 import { JourneyStage } from "~/widgets/journey-stage";
 import { PartyPanel } from "~/widgets/party-panel";
-import { SajuScroll } from "~/widgets/saju-scroll";
+import { JourneyRecap } from "~/widgets/journey-recap";
 import { TeamAnalysis } from "~/widgets/team-analysis";
 import { TopMeter } from "~/widgets/top-meter";
 
@@ -21,8 +21,7 @@ export function PlayPage() {
   const { pid, name, setName, ready } = useIdentity();
   const [gate, setGate] = useState<Gate>("checking");
 
-  const load = useCallback(() => fetchRoom(room, pid), [room, pid]);
-  const { data, error, set } = usePolling<RoomPayload>(load, { enabled: gate === "in" });
+  const { data, error, set } = useRoomFeed(room, pid, null, { enabled: gate === "in" });
 
   // 들어가기 전에 방이 실제로 있는지부터 확인한다 — 없는 코드로 방이 생기면 안 된다
   useEffect(() => {
@@ -119,7 +118,6 @@ function RoomShell({
           ) : finished ? (
             <>
               <EndingScroll nodeId={state.nodeId} path={state.path} />
-              <SajuScroll payload={payload} />
               <TeamAnalysis
                 room={room}
                 hostKey={null}
@@ -128,6 +126,7 @@ function RoomShell({
                 hasPlayers={payload.roster.length > 0}
                 onDone={onAnalysis}
               />
+              <JourneyRecap payload={payload} />
             </>
           ) : node ? (
             <JourneyStage

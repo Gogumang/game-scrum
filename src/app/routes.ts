@@ -10,6 +10,7 @@ export default [
   route("api/health", "routes/api.health.ts"),
   route("api/rooms", "routes/api.rooms.ts"),
   route("api/room/:room", "routes/api.state.ts"),
+  route("api/room/:room/stream", "routes/api.stream.ts"),
   route("api/room/:room/host", "routes/api.host.ts"),
   route("api/room/:room/join", "routes/api.join.ts"),
   route("api/room/:room/vote", "routes/api.vote.ts"),

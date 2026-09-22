@@ -1,5 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { pingStore, store } from "~/entities/room/api/store.server";
+import { cacheTtlMs } from "~/entities/room/api/cache.server";
 import { aiSource } from "~/shared/lib/ai.server";
 
 /**
@@ -17,7 +18,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const body = {
     ok: storeStatus.ok,
-    store: { driver: store().kind, ...storeStatus },
+    store: { driver: store().kind, cacheTtlMs: cacheTtlMs(), ...storeStatus },
     ai: { configured: aiSource() !== "none", source: aiSource() },
     host: { configured: !!process.env.HOST_PASSWORD },
     checkedAt: new Date().toISOString(),

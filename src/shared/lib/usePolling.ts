@@ -14,7 +14,7 @@ export type PollingResult<T> = {
  */
 export function usePolling<T>(
   fetcher: () => Promise<T>,
-  { intervalMs = 1500, enabled = true }: { intervalMs?: number; enabled?: boolean } = {},
+  { intervalMs = 1200, enabled = true }: { intervalMs?: number; enabled?: boolean } = {},
 ): PollingResult<T> {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);

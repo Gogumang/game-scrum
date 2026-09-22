@@ -23,14 +23,17 @@ export function JourneyStage({ node, picked, locked, onPick }: JourneyStageProps
   const [instant, setInstant] = useState(true);
   const [modalOpen, setModalOpen] = useState(skip && !locked);
 
-  useEffect(() => {
-    const s = picked !== null || locked;
-    setLineIndex(s ? node.script.length - 1 : 0);
-    setScriptDone(s);
+  // 마디가 바뀌면 렌더 중에 곧바로 되돌린다.
+  // effect 로 미루면 새 마디와 이전 줄 번호가 섞인 렌더가 한 번 끼어드는데,
+  // 다음 마디의 대사가 더 짧으면 없는 줄을 읽어 터진다.
+  const [shownNodeId, setShownNodeId] = useState(node.id);
+  if (shownNodeId !== node.id) {
+    setShownNodeId(node.id);
+    setLineIndex(skip ? node.script.length - 1 : 0);
+    setScriptDone(skip);
     setModalOpen(false);
     setInstant(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [node.id]);
+  }
 
   // 마감되면 모달을 닫고 대기 안내로 넘어간다
   useEffect(() => {
@@ -43,9 +46,9 @@ export function JourneyStage({ node, picked, locked, onPick }: JourneyStageProps
 
   function advance() {
     if (scriptDone) return;
-    if (lineIndex < node.script.length - 1) {
+    if (safeIndex < node.script.length - 1) {
       setInstant(false);
-      setLineIndex((i) => i + 1);
+      setLineIndex(safeIndex + 1);
     } else {
       setScriptDone(true);
       if (!locked) setModalOpen(true);
@@ -59,6 +62,10 @@ export function JourneyStage({ node, picked, locked, onPick }: JourneyStageProps
     setScriptDone(false);
   }
 
+  // 어떤 이유로든 범위를 벗어나면 마지막 줄로 잡아둔다 (빈 화면·크래시 방지)
+  const safeIndex = Math.min(Math.max(lineIndex, 0), node.script.length - 1);
+  const line = node.script[safeIndex];
+
   return (
     <>
       <p className="eyebrow">
@@ -69,8 +76,8 @@ export function JourneyStage({ node, picked, locked, onPick }: JourneyStageProps
       <div className="vn">
         <SceneArt name={node.scene} />
         <DialogueBox
-          line={node.script[lineIndex]}
-          last={lineIndex === node.script.length - 1}
+          line={line}
+          last={safeIndex === node.script.length - 1}
           instant={instant}
           showTip={!scriptDone}
           onAdvance={advance}

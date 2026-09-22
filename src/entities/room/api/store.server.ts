@@ -24,8 +24,17 @@ export function freshState(): RoomState {
   };
 }
 
+/** 한 번의 왕복으로 방 상태·참여자·진행자 키를 함께 가져온 것 */
+export type RoomSnapshot = {
+  state: RoomState | null;
+  players: Player[];
+  hostKey: string | null;
+};
+
 type Driver = {
   readonly kind: "redis" | "memory";
+  /** 방을 그리는 데 필요한 것을 한 번에 가져온다. 왕복을 줄이는 게 목적. */
+  snapshot(room: string, opts?: { hostKey?: boolean }): Promise<RoomSnapshot>;
   getState(room: string): Promise<RoomState | null>;
   setState(room: string, state: RoomState): Promise<void>;
   listPlayers(room: string): Promise<Player[]>;
@@ -54,8 +63,28 @@ function redisDriver(redis: Redis): Driver {
     return raw as T;
   };
 
+  const byJoinedAt = (a: Player, b: Player) => a.joinedAt - b.joinedAt;
+
   return {
     kind: "redis",
+    async snapshot(room, { hostKey = false } = {}) {
+      // 파이프라인으로 묶어 HTTP 왕복 한 번에 끝낸다
+      const pipe = redis.pipeline();
+      pipe.get(key.state(room));
+      pipe.hgetall(key.players(room));
+      if (hostKey) pipe.get(key.host(room));
+
+      const [rawState, rawPlayers, rawHost] = (await pipe.exec()) as unknown[];
+
+      return {
+        state: parse<RoomState>(rawState),
+        players: Object.values((rawPlayers as Record<string, unknown>) ?? {})
+          .map((raw) => parse<Player>(raw))
+          .filter((p): p is Player => !!p)
+          .sort(byJoinedAt),
+        hostKey: hostKey ? ((rawHost as string) ?? null) : null,
+      };
+    },
     async getState(room) {
       return parse<RoomState>(await redis.get(key.state(room)));
     },
@@ -71,8 +100,10 @@ function redisDriver(redis: Redis): Driver {
         .sort((a, b) => a.joinedAt - b.joinedAt);
     },
     async putPlayer(room, player) {
-      await redis.hset(key.players(room), { [player.id]: JSON.stringify(player) });
-      await redis.expire(key.players(room), TTL_SECONDS);
+      const pipe = redis.pipeline();
+      pipe.hset(key.players(room), { [player.id]: JSON.stringify(player) });
+      pipe.expire(key.players(room), TTL_SECONDS);
+      await pipe.exec();
     },
     async getHostKey(room) {
       return (await redis.get<string>(key.host(room))) ?? null;
@@ -113,6 +144,13 @@ const mem: Mem = ((globalThis as any).__strumMem ??= {
 
 const memoryDriver: Driver = {
   kind: "memory",
+  async snapshot(room, { hostKey = false } = {}) {
+    return {
+      state: mem.states.get(room) ?? null,
+      players: [...(mem.players.get(room)?.values() ?? [])].sort((a, b) => a.joinedAt - b.joinedAt),
+      hostKey: hostKey ? (mem.hosts.get(room) ?? null) : null,
+    };
+  },
   async getState(room) {
     return mem.states.get(room) ?? null;
   },

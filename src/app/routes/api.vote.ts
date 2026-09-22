@@ -1,7 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { nodeOf } from "~/entities/act/model/story";
-import { buildPayload, upsertPlayer } from "~/entities/room/api/room.server";
-import { requireRoom } from "~/entities/room/api/store.server";
+import { loadRoom, payloadFrom, savePlayer } from "~/entities/room/api/room.server";
 
 export async function action({ params, request }: ActionFunctionArgs) {
   const room = (params.room ?? "").toUpperCase();
@@ -10,19 +9,20 @@ export async function action({ params, request }: ActionFunctionArgs) {
   };
   if (!pid) throw new Response("pid 가 필요합니다.", { status: 400 });
 
-  const state = await requireRoom(room);
+  const snap = await loadRoom(room);
   const node = nodeOf(nodeId ?? "");
   if (!node || typeof choice !== "number" || !node.choices[choice]) {
     throw new Response("없는 선택지입니다.", { status: 400 });
   }
-  // 파티가 이미 지나온 마디이거나 결과가 공개된 뒤라면 표를 받지 않는다.
-  if (state.phase !== "vote" || state.nodeId !== nodeId) {
-    return Response.json(await buildPayload(room, pid, false));
+  // 이미 지나온 마디이거나 마감된 뒤라면 표를 받지 않는다
+  if (snap.state.phase !== "vote" || snap.state.nodeId !== nodeId) {
+    return Response.json(payloadFrom(room, snap, pid, false));
   }
 
-  await upsertPlayer(room, pid, (name ?? "").trim().slice(0, 16), (p) => {
+  const players = await savePlayer(room, snap, pid, (name ?? "").trim().slice(0, 16), (p) => {
     p.picks = { ...p.picks, [node.id]: choice };
   });
 
-  return Response.json(await buildPayload(room, pid, false));
+  // 방금 쓴 결과를 다시 읽지 않고 그대로 응답에 쓴다
+  return Response.json(payloadFrom(room, { ...snap, players }, pid, false));
 }

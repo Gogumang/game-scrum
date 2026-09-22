@@ -1,4 +1,4 @@
-import type { Analysis } from "~/entities/room";
+import type { Analysis, Point } from "~/entities/room";
 import { AnalysisRunner } from "~/features/run-analysis";
 import { Panel } from "~/shared/ui";
 
@@ -11,36 +11,58 @@ export type TeamAnalysisProps = {
   onDone: (analysis: Analysis) => void;
 };
 
-/** AI 팀 분석. 진행자가 한 번 돌리면 방 전체가 같은 결과를 본다. */
+/** 다수 선택에서 읽어낸 팀의 일하는 방식. 장점과 단점을 같은 성향의 양면으로 보여준다. */
 export function TeamAnalysis({
   room, hostKey, analysis, sessionId, hasPlayers, onDone,
 }: TeamAnalysisProps) {
   const current = analysis && analysis.sessionId === sessionId ? analysis : null;
 
-  return (
-    <Panel className="ai" title="AI 팀 분석">
-      {current ? (
-        <>
-          <p className="ai-head">{current.headline}</p>
-          <div className="ai-traits">
-            {current.traits.map((trait) => (
-              <div className="trait" key={trait.title}>
-                <h3>{trait.title}</h3>
-                <p>{trait.body}</p>
-              </div>
-            ))}
-          </div>
-          {current.watch ? (
-            <p className="ai-watch">
-              <b>이 파티가 조심할 것</b>
-              {current.watch}
-            </p>
-          ) : null}
-          {current.cheer ? <p className="ai-cheer">{current.cheer}</p> : null}
-        </>
-      ) : (
+  if (!current) {
+    return (
+      <Panel className="ai" title="우리 팀은 이렇게 일합니다">
         <AnalysisRunner room={room} hostKey={hostKey} onDone={onDone} disabled={!hasPlayers} />
-      )}
+      </Panel>
+    );
+  }
+
+  return (
+    <Panel className="ai" title="우리 팀은 이렇게 일합니다">
+      <p className="ai-head">{current.headline}</p>
+      <p className="ai-style">{current.style}</p>
+
+      <div className="ai-columns">
+        <PointList kind="strength" label="이래서 잘 됩니다" points={current.strengths} />
+        <PointList kind="weakness" label="이래서 놓칩니다" points={current.weaknesses} />
+      </div>
+
+      {current.tryNext ? (
+        <p className="ai-try">
+          <b>다음 스크럼에서 해볼 것</b>
+          {current.tryNext}
+        </p>
+      ) : null}
     </Panel>
+  );
+}
+
+function PointList({
+  kind, label, points,
+}: {
+  kind: "strength" | "weakness";
+  label: string;
+  points: Point[];
+}) {
+  return (
+    <div className={`ai-col ${kind}`}>
+      <h3 className="ai-col-label">{label}</h3>
+      <ul>
+        {points.map((p) => (
+          <li key={p.title}>
+            <b>{p.title}</b>
+            <span>{p.body}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

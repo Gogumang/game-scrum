@@ -7,7 +7,7 @@ export type {
   RoomPayload,
   RoomState,
   RosterEntry,
-  Trait,
+  Point,
 } from "./model/types";
 export { voteProgress, myPick, winners, type Progress } from "./model/selectors";
 export {
@@ -19,3 +19,4 @@ export {
   sendCommand,
   requestAnalysis,
 } from "./api/client";
+export { useRoomFeed, type RoomFeed } from "./api/useRoomFeed";

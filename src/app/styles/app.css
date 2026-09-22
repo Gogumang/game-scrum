@@ -384,3 +384,27 @@ ul{padding:0;list-style:none;}
   .roomcard-body{flex-direction:column;align-items:flex-start;}
   .roomcard-qr{width:120px;height:120px;}
 }
+
+/* ── 팀 분석: 장점 / 단점 ── */
+.ai-style{font-size:15px;line-height:1.75;color:var(--ink-soft);margin-bottom:22px;text-wrap:pretty;}
+.ai-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;}
+@media (max-width:720px){ .ai-columns{grid-template-columns:minmax(0,1fr);} }
+.ai-col{border:2.5px solid var(--line);border-radius:var(--radius);padding:16px 18px;}
+.ai-col.strength{border-color:var(--wood);background:color-mix(in srgb, var(--wood) 7%, transparent);}
+.ai-col.weakness{border-color:var(--fire);background:color-mix(in srgb, var(--fire) 7%, transparent);}
+.ai-col-label{font-family:var(--serif);font-size:15px;margin-bottom:12px;}
+.ai-col.strength .ai-col-label{color:var(--wood);}
+.ai-col.weakness .ai-col-label{color:var(--fire);}
+.ai-col ul{display:grid;gap:13px;}
+.ai-col li{display:grid;gap:4px;}
+.ai-col li b{font-size:14.5px;font-weight:600;}
+.ai-col li span{font-size:14px;line-height:1.62;color:var(--ink-soft);}
+.ai-try{
+  margin-top:18px;padding:15px 17px;border-radius:var(--radius);
+  background:var(--surface-2);border:2.5px solid var(--line);font-size:14.5px;line-height:1.65;
+}
+.ai-try b{display:block;font-size:11.5px;letter-spacing:.07em;color:var(--accent);margin-bottom:6px;font-weight:600;}
+
+/* 여정 요약 */
+.recap-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:14px;}
+@media (min-width:860px){ .recap-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;} }

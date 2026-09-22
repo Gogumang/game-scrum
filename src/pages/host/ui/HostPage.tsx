@@ -1,14 +1,13 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Link, useLoaderData, useParams } from "react-router";
 import { isEnding, nodeOf } from "~/entities/act";
-import { claimHost, fetchRoom, voteProgress, type Analysis, type RoomPayload } from "~/entities/room";
+import { claimHost, useRoomFeed, voteProgress, type Analysis } from "~/entities/room";
 import { ControlBar, useHostCommand } from "~/features/host-control";
 import { HostPasswordDialog, useHostKey } from "~/features/join-room";
-import { usePolling } from "~/shared/lib";
 import { Button } from "~/shared/ui";
 import { EndingScroll } from "~/widgets/ending-scroll";
 import { HostConsole } from "~/widgets/host-console";
-import { SajuScroll } from "~/widgets/saju-scroll";
+import { JourneyRecap } from "~/widgets/journey-recap";
 import { TeamAnalysis } from "~/widgets/team-analysis";
 import { RoomCodeCard } from "~/widgets/room-code";
 import { TopMeter } from "~/widgets/top-meter";
@@ -23,8 +22,7 @@ export function HostPage() {
   const [asking, setAsking] = useState(true);
   const { joinUrl, qrSvg } = useLoaderData() as { joinUrl: string; qrSvg: string };
 
-  const load = useCallback(() => fetchRoom(room, null, hostKey), [room, hostKey]);
-  const { data, error, set } = usePolling<RoomPayload>(load, { enabled: ready && !!hostKey });
+  const { data, error, set } = useRoomFeed(room, null, hostKey, { enabled: ready && !!hostKey });
   const { run, busy } = useHostCommand(room, hostKey, set);
 
   if (!ready) return <div className="app" />;
@@ -87,7 +85,6 @@ export function HostPage() {
           ) : finished ? (
             <>
               <EndingScroll nodeId={state.nodeId} path={state.path} />
-              <SajuScroll payload={data} />
               <TeamAnalysis
                 room={room}
                 hostKey={hostKey}
@@ -96,6 +93,7 @@ export function HostPage() {
                 hasPlayers={data.roster.length > 0}
                 onDone={onAnalysis}
               />
+              <JourneyRecap payload={data} />
             </>
           ) : node ? (
             <>
