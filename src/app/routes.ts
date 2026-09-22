@@ -7,6 +7,7 @@ export default [
 
   route("dev/scenes", "routes/dev.scenes.tsx"),
 
+  route("api/health", "routes/api.health.ts"),
   route("api/rooms", "routes/api.rooms.ts"),
   route("api/room/:room", "routes/api.state.ts"),
   route("api/room/:room/host", "routes/api.host.ts"),

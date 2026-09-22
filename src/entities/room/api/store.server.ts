@@ -155,7 +155,14 @@ export function store(): Driver {
   const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
 
   if (url && token) {
-    cached = redisDriver(new Redis({ url, token }));
+    cached = redisDriver(
+      new Redis({
+        url,
+        token,
+        // 잠깐 끊겨도 스탠드업이 멈추지 않게 몇 번 다시 시도한다
+        retry: { retries: 3, backoff: (attempt) => Math.min(200 * 2 ** attempt, 1000) },
+      }),
+    );
   } else {
     console.warn(
       "[strum] Upstash 환경변수가 없어 인메모리 저장소로 돌아갑니다. " +
@@ -164,6 +171,38 @@ export function store(): Driver {
     cached = memoryDriver;
   }
   return cached;
+}
+
+/* ── 상태 점검 ──────────────────────────────────────────────────── */
+
+export type StorePing = { ok: boolean; latencyMs: number; error?: string };
+
+/**
+ * 저장소가 살아 있는지 본다.
+ * write 를 켜면 쓰고 읽고 지워서 쓰기까지 확인한다.
+ */
+export async function pingStore({ write = false } = {}): Promise<StorePing> {
+  const db = store();
+  const started = Date.now();
+  const key = `strum:health:${write ? Date.now() : "probe"}`;
+
+  try {
+    if (write) {
+      await db.setState(key, { ...freshState(), nodeId: "health" });
+      const back = await db.getState(key);
+      if (!back) throw new Error("쓴 값을 다시 읽지 못했습니다");
+    } else {
+      // 읽기만 해도 저장소 활동으로 잡힌다 — 유휴 정리를 막는 목적
+      await db.getState(key);
+    }
+    return { ok: true, latencyMs: Date.now() - started };
+  } catch (error) {
+    return {
+      ok: false,
+      latencyMs: Date.now() - started,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 /* ── 공용 헬퍼 ──────────────────────────────────────────────────── */
