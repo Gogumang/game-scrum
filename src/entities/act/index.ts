@@ -18,3 +18,4 @@ export {
 } from "./model/story";
 export { SceneArt } from "./ui/SceneArt";
 export { DialogueBox, type DialogueBoxProps } from "./ui/DialogueBox";
+export { usePrefetchNextScenes } from "./model/prefetch";

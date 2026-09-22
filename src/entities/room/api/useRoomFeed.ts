@@ -81,7 +81,11 @@ export function useRoomFeed(
   /* ── 안전망: 밀어주기가 끊겨 있을 때만 천천히 물어본다 ── */
   useEffect(() => {
     if (!enabled) return;
-    void refresh(); // 첫 화면은 기다리지 않는다
+
+    // SSE 가 첫 상태를 바로 내려준다. 못 붙었을 때만 직접 물어본다.
+    const firstTry = window.setTimeout(() => {
+      if (!live) void refresh();
+    }, 600);
 
     const timer = window.setInterval(() => {
       if (!live && !document.hidden) void refresh();
@@ -93,6 +97,7 @@ export function useRoomFeed(
     document.addEventListener("visibilitychange", onVisible);
 
     return () => {
+      window.clearTimeout(firstTry);
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };

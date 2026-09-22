@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DialogueBox, SceneArt, type StoryNode } from "~/entities/act";
+import { DialogueBox, SceneArt, usePrefetchNextScenes, type StoryNode } from "~/entities/act";
 import { ChoiceList } from "~/features/cast-vote";
 import { Modal, StatusLine } from "~/shared/ui";
 
@@ -16,6 +16,9 @@ export type JourneyStageProps = {
  * 집계와 결과는 여기 오지 않는다 — 진행자만 본다.
  */
 export function JourneyStage({ node, picked, locked, onPick }: JourneyStageProps) {
+  // 다음에 갈 수 있는 장면을 대사 읽는 동안 미리 받아둔다
+  usePrefetchNextScenes(node);
+
   const skip = picked !== null || locked;
 
   const [lineIndex, setLineIndex] = useState(skip ? node.script.length - 1 : 0);

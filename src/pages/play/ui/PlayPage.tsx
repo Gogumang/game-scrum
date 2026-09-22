@@ -23,9 +23,14 @@ export function PlayPage() {
 
   const { data, error, set } = useRoomFeed(room, pid, null, { enabled: gate === "in" });
 
-  // 들어가기 전에 방이 실제로 있는지부터 확인한다 — 없는 코드로 방이 생기면 안 된다
+  // 이름을 이미 아는 사람은 바로 합류를 시도한다. 없는 방이면 그 요청이 알려준다.
+  // 이름을 물어봐야 하는 사람만, 묻기 전에 방이 있는지 먼저 확인한다.
   useEffect(() => {
     if (!ready) return;
+    if (name.trim()) {
+      setGate((g) => (g === "checking" ? "naming" : g));
+      return;
+    }
     let alive = true;
     fetchRoom(room, null)
       .then(() => alive && setGate((g) => (g === "checking" ? "naming" : g)))
@@ -33,7 +38,7 @@ export function PlayPage() {
     return () => {
       alive = false;
     };
-  }, [ready, room]);
+  }, [ready, room, name]);
 
   // 이름이 있으면 바로 합류한다
   useEffect(() => {
