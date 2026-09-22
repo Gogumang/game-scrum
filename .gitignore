@@ -1,0 +1,12 @@
+.DS_Store
+.env
+/node_modules/
+
+# React Router
+/.react-router/
+/build/
+.vercel
+.env*
+
+# 예시 파일은 커밋합니다
+!.env.example
