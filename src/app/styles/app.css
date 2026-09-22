@@ -359,3 +359,28 @@ ul{padding:0;list-style:none;}
 .thumb-panel{margin-top:14px;}
 .thumb{border:2.5px solid var(--vn-line);border-radius:10px;overflow:hidden;}
 .thumb svg,.thumb .scene-img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;}
+
+/* ── 방 코드 안내 ── */
+.roomcard{border-color:var(--accent);box-shadow:0 3px 0 var(--accent);margin-bottom:20px;}
+.roomcard-body{display:flex;align-items:center;gap:18px;}
+.roomcard-left{flex:1;min-width:0;}
+.roomcard-code{
+  font-family:var(--serif);font-size:clamp(34px,6vw,52px);line-height:1;
+  letter-spacing:.14em;color:var(--accent);
+}
+.roomcard-url{margin-top:9px;font-size:13px;color:var(--ink-faint);word-break:break-all;}
+.roomcard-copy{
+  margin-top:12px;border:2.5px solid var(--line-strong);background:var(--surface-2);
+  border-radius:9px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;
+}
+.roomcard-copy:hover{border-color:var(--accent);color:var(--accent);}
+.roomcard-copy:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.roomcard-qr{flex:none;width:132px;height:132px;padding:8px;background:#FFFFFF;border:2.5px solid var(--vn-line);border-radius:10px;}
+.roomcard-qr svg{display:block;width:100%;height:100%;}
+.roomcard.compact .roomcard-code{font-size:28px;}
+.roomcard.compact .roomcard-qr{width:84px;height:84px;padding:5px;}
+.roomcard.compact .roomcard-url{display:none;}
+@media (max-width:520px){
+  .roomcard-body{flex-direction:column;align-items:flex-start;}
+  .roomcard-qr{width:120px;height:120px;}
+}
