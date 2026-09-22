@@ -12,11 +12,12 @@ import "./styles/app.css";
 export const links = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-  {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=IBM+Plex+Sans+KR:wght@400;600&display=swap",
-  },
+  // 먼저 받아두되, 화면을 막지는 않는다
+  { rel: "preload", as: "style", href: FONT_CSS },
 ];
+
+const FONT_CSS =
+  "https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=IBM+Plex+Sans+KR:wght@400;600&display=swap";
 
 export const meta = () => [
   { title: "전자금융의 기묘한 하루" },
@@ -35,6 +36,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <Meta />
         <Links />
+        {/* media 를 print 로 두면 첫 페인트를 막지 않는다. 다 받으면 all 로 바꿔 적용. */}
+        <link
+          rel="stylesheet"
+          href={FONT_CSS}
+          media="print"
+          onLoad={(e) => {
+            (e.currentTarget as HTMLLinkElement).media = "all";
+          }}
+        />
+        <noscript>
+          <link rel="stylesheet" href={FONT_CSS} />
+        </noscript>
       </head>
       <body>
         {children}

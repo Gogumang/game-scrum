@@ -408,3 +408,6 @@ ul{padding:0;list-style:none;}
 /* 여정 요약 */
 .recap-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:14px;}
 @media (min-width:860px){ .recap-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;} }
+
+/* 벡터 장면을 받아오는 잠깐 */
+.scene-loading{background:var(--surface-2);}
