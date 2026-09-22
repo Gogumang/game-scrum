@@ -13,7 +13,8 @@
     "start:local": "node --env-file=.env.local ./node_modules/.bin/react-router-serve ./build/server/index.js",
     "scenes:sync": "node scripts/sync-scenes.mjs",
     "scenes:optimize": "node scripts/optimize-scenes.mjs",
-    "check:store": "node scripts/check-store.mjs"
+    "check:store": "node scripts/check-store.mjs",
+    "review:script": "node scripts/review-script.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.72",
