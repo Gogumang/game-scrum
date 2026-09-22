@@ -36,13 +36,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <Meta />
         <Links />
-        {/* media 를 print 로 두면 첫 페인트를 막지 않는다. 다 받으면 all 로 바꿔 적용. */}
-        <link
-          rel="stylesheet"
-          href={FONT_CSS}
-          media="print"
-          onLoad={(e) => {
-            (e.currentTarget as HTMLLinkElement).media = "all";
+        {/* 폰트 CSS 는 남의 서버에서 오고 51KB 다. 첫 페인트를 막지 않게 받아두고,
+            다 오면 적용한다. 하이드레이션을 기다리지 않도록 head 에서 바로 처리한다. */}
+        <link rel="stylesheet" href={FONT_CSS} media="print" data-font-css="" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){var l=document.querySelector('link[data-font-css]');" +
+              "if(!l)return;var go=function(){l.media='all'};" +
+              "if(l.sheet){go()}else{l.addEventListener('load',go);" +
+              "setTimeout(go,3000)}})()",
           }}
         />
         <noscript>
